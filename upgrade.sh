@@ -6,6 +6,8 @@
 			then echo -e "\e[1;31mDerzeit besteht keine Internetverbindung.\e[0;0m"
 			elif pgrep -a apt >/dev/null
 				then echo -e "\e[1;31mEs läuft bereits ein APT-Prozess.\e[0;0m"
+			elif pgrep -a dpkg >/dev/null
+				then echo -e "\e[1;31mEs läuft noch ein DPKG-Prozess.\e[0;0m"
 			else aptUpgrade
 			fi
 		}
