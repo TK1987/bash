@@ -1,6 +1,4 @@
 #!/usr/bin/sudo /bin/bash
-touch /home/thomas/anarun.txt
-export DISPLAY=:0
 su $(users|cut -d' ' -f1) -c 'notify-send -i /usr/share/icons/gnome/48x48/status/dialog-warning.png "Warnung" "Ihr Paketsystem ist beschädigt und konnte nicht repariert werden!" -t 0'
 
 	aptUpgrade() {
@@ -18,8 +16,8 @@ su $(users|cut -d' ' -f1) -c 'notify-send -i /usr/share/icons/gnome/48x48/status
 				if [ $? = 0 ]
 					then echo -e "\e[1;32mReparatur war erfolgreich.\e[0;0m"
 					else echo -e "Paketsystem konnte nicht repariert werden."
-					notify-send -i /usr/share/icons/gnome/48x48/status/dialog-warning.png "Warnung" "Ihr Paketsystem ist beschädigt und konnte nicht repariert werden!" -t 0
-					return 1
+					export DISPLAY=:0
+					su $(users|cut -d' ' -f1) -c 'notify-send -i /usr/share/icons/gnome/48x48/status/dialog-warning.png "Warnung" "Ihr Paketsystem ist beschädigt und konnte nicht repariert werden!" -t 0'
 					fi
 			else echo -e "\e[1;32mPakete wurden erfolgreich aktualisiert.\e[0;0m"
 			fi
