@@ -1,6 +1,16 @@
 #!/usr/bin/sudo /bin/bash
-su $(users|cut -d' ' -f1) -c 'notify-send -i /usr/share/icons/gnome/48x48/status/dialog-warning.png "Warnung" "Ihr Paketsystem ist beschädigt und konnte nicht repariert werden!" -t 0'
 
+### HAUPTPROGRAMM ###
+	main() {
+		if ! ping -c 1 8.8.8.8 >/dev/null 2>&1
+			then echo -e "\e[1;31mDerzeit besteht keine Internetverbindung.\e[0;0m"
+			elif pgrep -a apt >/dev/null
+				then echo -e "\e[1;31mEs läuft bereits ein APT-Prozess.\e[0;0m"
+			else aptUpgrade
+			fi
+		}
+
+### FUNKTIONEN ###
 	aptUpgrade() {
 		apt -y update
 		echo "Installiere Updates... "
@@ -29,10 +39,5 @@ su $(users|cut -d' ' -f1) -c 'notify-send -i /usr/share/icons/gnome/48x48/status
 			fi
 		}
 
-### HAUPTPROGRAMM ###
-	if ! ping -c 1 8.8.8.8 >/dev/null 2>&1
-		then echo -e "\e[1;31mDerzeit besteht keine Internetverbindung.\e[0;0m"
-		elif pgrep -a apt >/dev/null
-			then echo -e "\e[1;31mEs läuft bereits ein APT-Prozess.\e[0;0m"
-		else aptUpgrade
-		fi
+### RUN ###
+main "$@"
