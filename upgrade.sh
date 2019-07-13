@@ -13,7 +13,6 @@
 		}
 
 ### FUNKTIONEN ###
-
 	aptUpgrade() {
 		apt -y update
 		echo "Installiere Updates... "
