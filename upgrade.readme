@@ -1,6 +1,6 @@
 Erläuterung:
 Wir beginnen im Hauptprogramm
-Zeile 5-6: Als erstes wird der Googleserver angepingt, um zu prüfen ob eine Internetverbindung besteht. Desteht diese nicht, wird eine entsprechende Meldung in roter Schrift ausgegeben und das Script endet.
+Zeile 5-6: Als erstes wird der Googleserver angepingt, um zu prüfen ob eine Internetverbindung besteht. Besteht diese nicht, wird eine entsprechende Meldung in roter Schrift ausgegeben und das Script endet.
 Zeilen 7-10: Besteht eine Internetverbindung, wird mit 'pgrep -a apt' und 'pgrep -a dpkg' geprüft, ob ein apt- oder dpkg-Prozess läuft. Läuft ein solcher, wird eine entsprechende Meldung in roter Schrift ausgegeben und das Script endet.
 Zeile 11: Läuft kein solcher Prozess, wird die Funktion "aptUpgrade" aufgerufen. 
 
@@ -17,3 +17,5 @@ Funktion zWarn
 Zeile 47: Über "zenity" wird eine grafische Warnung in der GUI erzeugt.
 
 Zeile 51: Ausführen des Hauptprogramms
+
+Alle Meldung außer der erfolgen im Terminal, außer der zenity-Warnung, dass das Paketsystem beschädigt ist und nicht repariert werden muss. Wenn das Script also als Daemon im Hintergrund läuft, wird der Benutzer nur in diesem Fall belästigt da er hier zwingend Hand anlegen muss.
