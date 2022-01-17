@@ -12,7 +12,7 @@ mainmenu () {
      --ok-button Ok --cancel-button Beenden \
     $CH 3>&1 1>&2 2>&3
   )
-  echo ${DEVS[${SEL:0:1}]}
+  if [ -z "$SEL" ];then $EXIT 1;else echo ${DEVS[${SEL:0:1}]};fi
 }
 
 lsusr () {
@@ -23,7 +23,7 @@ lsusr () {
     --ok-button ok --cancel-button Abbruch \
     $USERS 3>&1 1>&2 2>&3
   )
-  echo $SEL
+  if [ -z "$SEL" ];then $EXIT 1;else echo $SEL;fi
 }
 
 readpw () {
@@ -40,7 +40,11 @@ readpw () {
 }
 
 ROOT=($(mainmenu))
+if [[ $? == 1 || -z "$ROOT" ]];then $EXIT 1;fi
+
 MP=$(lsblk $ROOT -lno MOUNTPOINT)
-if [ -z "$MP" ];then MP="/mnt";mount $ROOT $MP;fi
+
 USR=$(lsusr $MP)
+if [[ $? == 1 || -z "$USR" ]];then $EXIT 1;fi
+
 readpw $USR $MP
