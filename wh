@@ -1,6 +1,30 @@
 #!/bin/bash
 set -e
 
+usage () {
+  echo
+  echo "Aufruf: wh --forecolor <color> --backcolor <color> \"Text\""
+  echo
+  echo "Gibt Text (mehr)farbig auf der Konsole aus. "
+  echo
+  echo -e "\e[4mOption:\e[0m"
+  echo
+  echo "  -f   --forecolor   Vordergrundfarbe setzen (kann mehrfach angegebn werden). "
+  echo "  -b   --backcolor   Hintergrundfarbe setzen (kann mehrfach angegebn werden). "
+  echo "  -h   --help        Ruft diese Hilfe auf. "
+  echo
+  echo -e "\e[4mBeispiel:\e[0m"
+  echo
+  echo "  wh -f green \"Dies ist\" -f red \"ein Beispiel\n\" -b white -f blue \"mit Zeilenumbruch\""
+  echo
+  echo -e "\e[4mErgebnis:\e[0m"
+  echo
+  echo -e "  \e[0;32mDies ist \e[0;31mein Beispiel\n  \e[0;34m\e[1;47mmit Zeilenumbruch\e[0m"
+  echo
+}
+
+FC=0
+BC=0
 while test $# -gt 0;do
   OPT=$1
   shift
@@ -8,47 +32,53 @@ while test $# -gt 0;do
   case $OPT in
     -f | --forecolor)
       case ${1,,} in
-        black)                       FC="\033[0;30m"; shift;;
-        red)                         FC="\033[0;31m"; shift;;
-        green)                       FC="\033[0;32m"; shift;;
-        orange)                      FC="\033[0;33m"; shift;;
-        blue)                        FC="\033[0;34m"; shift;;
-        purple)                      FC="\033[0;35m"; shift;;
-        cyan)                        FC="\033[0;36m"; shift;;
-        lgray    | lightgray)        FC="\033[0;37m"; shift;;
-        dgray    | darkgray)         FC="\033[1;30m"; shift;;
-        lred     | lightred)         FC="\033[1;31m"; shift;;
-        lgreen   | lightgreen)       FC="\033[1;32m"; shift;;
-        yellow)                      FC="\033[1;33m"; shift;;
-        lblue    | lightblue)        FC="\033[1;34m"; shift;;
-        lpurple  | lightpurple)      FC="\033[1;35m"; shift;;
-        lcyan    | lightcyan)        FC="\033[1;36m"; shift;;
-        white)                       FC="\033[1;37m"; shift;;
-        nc | nocolor | none)         FC="\033[0m"   ; shift;;
+        black)                       FC="30"; shift;;
+        red)                         FC="31"; shift;;
+        green)                       FC="32"; shift;;
+        orange)                      FC="33"; shift;;
+        blue)                        FC="34"; shift;;
+        purple)                      FC="35"; shift;;
+        cyan)                        FC="36"; shift;;
+        lgray    | lightgray)        FC="37"; shift;;
+        dgray    | darkgray)         FC="90"; shift;;
+        lred     | lightred)         FC="91"; shift;;
+        lgreen   | lightgreen)       FC="92"; shift;;
+        yellow)                      FC="93"; shift;;
+        lblue    | lightblue)        FC="94"; shift;;
+        lpurple  | lightpurple)      FC="95"; shift;;
+        lcyan    | lightcyan)        FC="96"; shift;;
+        white)                       FC="97"; shift;;
+        nc | nocolor | none)         FC="0" ; shift;;
+        *)                                    shift;;
       esac
     ;;
     -b | --backcolor)
       case ${1,,} in
-        black)                       BC="\033[0;40m"; shift;;
-        red)                         BC="\033[0;41m"; shift;;
-        green)                       BC="\033[0;42m"; shift;;
-        orange)                      BC="\033[0;43m"; shift;;
-        blue)                        BC="\033[0;44m"; shift;;
-        purple)                      BC="\033[0;45m"; shift;;
-        cyan)                        BC="\033[0;46m"; shift;;
-        lgray    | lightgray)        BC="\033[0;47m"; shift;;
-        dgray    | darkgray)         BC="\033[1;40m"; shift;;
-        lred     | lightred)         BC="\033[1;41m"; shift;;
-        lgreen   | lightgreen)       BC="\033[1;42m"; shift;;
-        yellow)                      BC="\033[1;43m"; shift;;
-        lblue    | lightblue)        BC="\033[1;44m"; shift;;
-        lpurple  | lightpurple)      BC="\033[1;45m"; shift;;
-        lcyan    | lightcyan)        BC="\033[1;46m"; shift;;
-        white)                       BC="\033[1;47m"; shift;;
-        nc | nocolor | none)         BC="\033[0m"   ; shift;;
+        black)                       BC="40";  shift;;
+        red)                         BC="41";  shift;;
+        green)                       BC="42";  shift;;
+        orange)                      BC="43";  shift;;
+        blue)                        BC="44";  shift;;
+        purple)                      BC="45";  shift;;
+        cyan)                        BC="46";  shift;;
+        lgray    | lightgray)        BC="47";  shift;;
+        dgray    | darkgray)         BC="100"; shift;;
+        lred     | lightred)         BC="101"; shift;;
+        lgreen   | lightgreen)       BC="102"; shift;;
+        yellow)                      BC="103"; shift;;
+        lblue    | lightblue)        BC="104"; shift;;
+        lpurple  | lightpurple)      BC="105"; shift;;
+        lcyan    | lightcyan)        BC="106"; shift;;
+        white)                       BC="107"; shift;;
+        nc | nocolor | none)         BC="0"  ; shift;;
+        *)                                    shift;;
       esac
     ;;
-    *)  if test $# -gt 0;then ECHO="$ECHO${FC}${BC}$OPT ";else ECHO="$ECHO${FC}${BC}$OPT";fi;;
+    -h | --help)
+       usage
+       exit 0
+    ;;
+    *)  if [[ $# -gt 0 && ! "$OPT" =~ .*\n$ ]];then ECHO="$ECHO\e[${FC};${BC}m$OPT ";else ECHO="$ECHO\e[${FC};${BC}m$OPT";fi;;
   esac
 done
-echo -e "$ECHO\033[0m"
+echo -e "$ECHO\e[0m"
