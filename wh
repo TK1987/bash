@@ -48,7 +48,6 @@ while test $# -gt 0;do
         nc | nocolor | none)         BC="\033[0m"   ; shift;;
       esac
     ;;
-    -*) echo -e "\033[0;31mUngültiges Argument\033[0m";exit 1;;
     *)  if test $# -gt 0;then ECHO="$ECHO${FC}${BC}$OPT ";else ECHO="$ECHO${FC}${BC}$OPT";fi;;
   esac
 done
