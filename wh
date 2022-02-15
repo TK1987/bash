@@ -48,7 +48,7 @@ while test $# -gt 0;do
         lpurple  | lightpurple)      FC="95"; shift;;
         lcyan    | lightcyan)        FC="96"; shift;;
         white)                       FC="97"; shift;;
-        nc | nocolor | none)         FC="0" ; shift;;
+        nc | nocolor | none)         FC="39" ; shift;;
         *)                                    shift;;
       esac
     ;;
@@ -70,7 +70,7 @@ while test $# -gt 0;do
         lpurple  | lightpurple)      BC="105"; shift;;
         lcyan    | lightcyan)        BC="106"; shift;;
         white)                       BC="107"; shift;;
-        nc | nocolor | none)         BC="0"  ; shift;;
+        nc | nocolor | none)         BC="49"  ; shift;;
         *)                                    shift;;
       esac
     ;;
