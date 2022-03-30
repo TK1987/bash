@@ -1,4 +1,4 @@
-﻿#!/bin/bash
+#!/bin/bash
 set -e
 create_usb() {
   local DEVS=$(for dev in /sys/block/*;do
