@@ -20,5 +20,5 @@ if grep -iqP "^export +sudo_askpass" .bashrc;then
 else
   echo -e "export SUDO_ASKPASS=/home/krichel/.local/bin/askpass.sh" >> $HOME/.bashrc
 fi && . .bashrc
-echo "Variable 'SUDO_ASKPASS' wurde in der '$HOME/.bashrc' definiert."
+echo "Variable 'SUDO_ASKPASS' wurde in '$HOME/.bashrc' definiert."
 echo -e "\nSie können ab sofort \e[93m'sudo -A'\e[0m nutzen, um die Passwortabfrage mit feedback zu erhalten. "
