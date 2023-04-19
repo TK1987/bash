@@ -2,50 +2,54 @@
 
 ### HAUPTPROGRAMM ###
 	main() {
-		if ! ping -c 1 8.8.8.8 >/dev/null 2>&1
-			then echo -e "\e[1;31mDerzeit besteht keine Internetverbindung.\e[0;0m"
-			elif pgrep -a apt >/dev/null
-				then echo -e "\e[1;31mEs läuft bereits ein APT-Prozess.\e[0;0m"
-			elif pgrep -a dpkg >/dev/null
-				then echo -e "\e[1;31mEs läuft noch ein DPKG-Prozess.\e[0;0m"
-			else aptUpgrade
-			fi
-		}
+    if dpkg -l |grep -qE "^[a-zA-Z][A-Z]";then
+      if ! repair;then
+        return 1
+      fi
+    fi
+
+		if ! ping -c 1 8.8.8.8 >/dev/null 2>&1;then
+			echo -e "\e[1;31mDerzeit besteht keine Internetverbindung.\e[0;0m"
+		elif pgrep -a apt >/dev/null;then
+      echo -e "\e[1;31mEs läuft bereits ein APT-Prozess.\e[0;0m"
+		elif pgrep -a dpkg >/dev/null;then
+      echo -e "\e[1;31mEs läuft noch ein DPKG-Prozess.\e[0;0m"
+		else
+      aptUpgrade
+		fi
+	}
 
 ### FUNKTIONEN ###
 	aptUpgrade() {
 		apt -y update
 		echo "Installiere Updates... "
-		apt -y full-upgrade
-		if [ $? != 0 ]
-			then
-				echo -e "\e[1;31mDas Paketsystem ist beschädigt. Versuche Reparatur...\e[0;0m"
-				dpkg --configure -a
-				apt-get -y --fix-broken install
-				apt -y autoremove --purge
-				apt clean
-				apt -y full-upgrade
-				if [ $? = 0 ]
-					then echo -e "\e[1;32mReparatur war erfolgreich.\e[0;0m"
-					else
-						echo -e "\e[1;31mPaketsystem konnte nicht repariert werden!\e[0;0m"
-						export -f zWarn	
-						su $(users|cut -d' ' -f1) -c 'zWarn'
-					return 1
-					fi
-			else echo -e "\e[1;32mPakete wurden erfolgreich aktualisiert.\e[0;0m"
-			fi
+		if ! apt -y full-upgrade;then
+      if ! repair;then
+        return 1
+      else
+        /bin/bash $(realpath "${BASH_SOURCE[0]}")
+      fi
+    fi
 		echo -e "\e[1;33mEntferne nicht mehr benötigte Pakete... \e[0;0m"
 		apt -y autoremove
-		if [ -f /var/run/reboot-required ]
-			then echo -e  "\e[1;33mBitte starten sie den Computer neu.\e[0;0m"
-			else echo -e "\e[1;33mIhr Computer ist aktuell, kein Neustart nötig.\e[0;0m"
-			fi
-		}
+		if [ -f /var/run/reboot-required ];then
+			echo -e "\e[93mBitte starten sie den Computer neu.\e[0;0m"
+		else
+      echo -e "\e[93mIhr Computer ist aktuell, kein Neustart nötig.\e[0;0m"
+    fi
+	}
 
-	zWarn() {
-		zenity --warning --width=300 --text='Das Paketsystem ist beschädigt und konnte nicht repariert werden!' --display=:0.0 2>/dev/null
-		}
+  repair(){
+    ErrSt=0
+    echo 
+    if ! dpkg --configure -a 2>/dev/null;then ErrSt=1;fi
+    if ! sudo apt install --fix-broken -y 2>/dev/null;then ErrSt=1;else ErrSt=0;fi
+    if [ $ErrSt != 0 ];then
+      echo -E "\e[31mDas Paketsystem ist beschädigt und konnte nicht repariert werden.\e[0m\nDefekte Pakete: "
+      dpkg -l|awk '$1 ~ "^[a-zA-Z][A-Z]" {print "  " $2}'
+      return 1
+    fi
+  }
 
 ### RUN ###
-main
+  main
