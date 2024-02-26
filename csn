@@ -1,0 +1,156 @@
+#!/bin/bash
+set -e
+
+splitArgs(){
+  fold -w1 <<< ${1:1} | sed -e "s/^/-/" | xargs
+}
+
+getParams(){
+  until [ "$1" = "" ];do
+    local a=$1
+    shift
+
+    if [[ "$a" =~ ^-[a-zA-Z]{2,}$ ]];then args=$(splitArgs $a);set -- $args $*;local a=$1;shift;fi
+    if [[ "$a" =~ ^/ ]];then device=$a;continue;fi
+
+    case "$a" in
+      -h|--help)    echo "${OUT[help]}"; exit;;
+      -r|--random)  random=true;;
+      -s|--serial)  sn=$1;shift;;
+      *)            printf "${OUT[wrongParam]}\n" "'$a'";return 8;;
+    esac
+  done
+}
+
+checkValues(){
+  if [ -z "$device" ];then printf "${OUT[noDev]}\n";return 2;fi
+  if [ ! -b "$device" ];then printf "${OUT[noBlockDev]}\n" "'$device'";return 9;fi
+  fs=$(lsblk -lno fstype $device)
+  prevSN=$(lsblk -lno uuid $device)
+  mounts=$(lsblk -lno mountpoints $device)
+
+  if [ ! -z "$mounts" ];then
+    printf "${OUT[mounted]}\n" $device
+    return 7
+  fi
+  if [[ ! "$fs" =~ ^(ntfs|vfat)$ ]];then
+    echo "${OUT[noFS]}"
+    return 4
+  elif [ "$fs" = "ntfs" ];then
+    seek=72;length=8
+  else
+    seek=67;length=4
+  fi
+
+  if [[ -z "$random" && -z "$sn" ]];then
+    echo "${OUT[noSN]}"
+    return 5
+  elif [[ ! -z "$random" && ! -z "$sn" ]];then
+    echo "${OUT[SnOverDef]}"
+    return 3
+  fi
+
+  if [ "$random" = "true" ];then
+    sn=$(xxd -l$length -u -p /dev/urandom)
+    if [ "$fs" == "vfat" ];then sn=$(sed -E 's/^(....)/\1-/'<<<$sn);fi
+  elif [[ "$fs" = "ntfs" && ! "${sn^^}" =~ ^[A-F0-9]{16}$ ]];then
+    printf "${OUT[wrongSN]}.\n" "'$sn'" "NTFS" 16
+    return 4
+  elif [[ "$fs" = "vfat" && ! "$(tr -d - <<<${sn^^})" =~ ^[A-F0-9]{8}$ ]];then
+    printf "${OUT[wrongSN]}.\n" "'$sn'" "FAT" 8
+    return 4
+  fi
+  if [ "$sn" = "$prevSN" ];then
+    printf "${OUT[equalSN]}\n" $sn
+    return 10
+  fi
+}
+
+checkSudo(){
+  if [ "$EUID" != 0 ];then echo "${OUT[noSudo]}";return 6;fi
+}
+
+getTranslation(){
+  if [ ! -z "$LANGUAGE" ];then local lang=${LANGUAGE:0:3};else local lang=${LANG:0:2};fi
+
+  case "$lang" in
+
+# GERMAN
+    de)
+      OUT[help]='Ändern von NTFS-/FAT Seriennummern.
+
+Nutzung:
+  csn [optionen] <gerät>
+
+Optionen:
+
+  --help    -h                  Diese Hilfe anzeigen
+  --random  -r                  Zufällige Seriennummer zuweisen
+  --serial  -s <Seriennummer>   Seriennummer zuweisen'
+
+      OUT[wrongParam]='Der Parameter %s existiert nicht.'
+      OUT[noDev]='Es wurde kein Gerät angegeben.'
+      OUT[noBlockDev]='%s ist kein Blockgerät.'
+      OUT[noSN]="Sie müssen entweder eine Seriennummer mit dem Parameter '--serial' definieren, oder den Parameter '--random' angeben."
+      OUT[SnOverDef]="'--random' kann nicht mit '-serial' kombiniert werden."
+      OUT[noFS]="Das Gerät enthält kein gültiges Dateisystem. Nur NTFS und FAT werden unterstützt."
+      OUT[wrongSN]='Die angegebene Seriennummer %s hat nicht das richtige Format. Für das %s-Dateisystem muss die Seriennummer aus %d Hexadezimalzeichen bestehen'
+      OUT[noSudo]='Dieses Skript muss mit Root-Rechten gestartet werden.'
+      OUT[mounted]='%s ist noch eingehangen.'
+      OUT[changed]='Die Seriennummer wurde von %s auf %s geändert.'
+      OUT[undev]='Ein undefinierter Fehler ist aufgetreten.'
+      OUT[equalSN]='Das Gerät hat bereits die Seriennummer %s. Nichts zu tun.'
+      ;;
+
+# ENGLISH
+    *)
+
+      "Changes NTFS/FAT serial numbers.
+
+Usage:
+  csn [options] <device>
+
+Options:
+
+  --help    -h                  Print this help
+  --random  -r                  Set random serial
+  --serial  -s <Seriennummer>   Set serial number"
+
+      OUT[wrongParam]='The parameter %s does not exist.'
+      OUT[noDev]='No device specified.'
+      OUT[noBlockDev]='%s is not a block device.'
+      OUT[noSN]="You must either define a serial number with the parameter '--serial' or specify the parameter '--random'."
+      OUT[SnOverDef]="'--random' can't be combined with '--serial'."
+      OUT[noFS]='The device does not conatain a valid filesystem. Just NTFS and FAT are supported.'
+      OUT[wrongSN]='The specified serial number %s is not valid. For the %s file system, the serial number must consist of %d hexadecimal numbers.'
+      OUT[noSudo]='This script must be run as root.'
+      OUT[mounted]='%s is still mounted.'
+      OUT[changed]='Serial number changed from %s to %s.'
+      OUT[undev]='An undefined error has occurred.'
+      OUT[equalSN]='The device already has the serial number %s. Nothing to do.'
+      ;;
+  esac
+}
+declare -A OUT
+getTranslation
+getParams $*
+checkSudo
+checkValues
+tr -d - <<<$sn|rev|fold -w2|rev|xxd -r -p|2>/dev/null dd of=$device bs=1 seek=$seek count=$length
+if [ "$?" = 0 ];then
+  printf "${OUT[changed]}\n" $prevSN $sn
+else
+  echo "${OUT[undefined]}"
+fi
+
+# ERRORCODES
+#  1: undefined error
+#  2: No Device specified
+#  3: Multiple Serials specified
+#  4: Wrong Filesystem
+#  5: No Serialnumber specifies
+#  6: No sudo privilegs
+#  7: Device is mounted
+#  8: Unknown Parameter
+#  9: Not a Blockdevice
+# 10: Serial numbers are equal
