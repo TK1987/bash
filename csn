@@ -1,6 +1,6 @@
 #!/bin/bash
 set -e
-
+#xxxx
 getParams(){
   until [ "$1" = "" ];do
     local a=$1
