@@ -2,6 +2,7 @@
 set -e
 
 getParams(){
+  if [ -z "$*" ];then echo "${OUT[help]}";exit;fi
   until [ "$1" = "" ];do
     local a=$1
     shift
@@ -12,7 +13,7 @@ getParams(){
     elif [[ "$a" =~ ^/ ]];then
       if [[ ! -z "$device" ]];then
         echo "${OUT[multiDev]}"
-        err=$(($err+1028))
+        return 11
       fi
       device=$a
       continue
@@ -28,61 +29,63 @@ getParams(){
 }
 
 checkValues(){
+  if [ -z "$(which xxd)" ];then
+    echo "${OUT[noXxd]}"
+    return 13
+  fi
   if [ "$EUID" != 0 ];then
     echo "${OUT[noSudo]}"
-    err=$(($err+32))
+    return 7
   fi
 
   if [ -z "$device" ];then
     printf "${OUT[noDev]}\n"
-    err=$(($err+2))
+    return 2
   elif [ ! -b "$device" ];then
     printf "${OUT[noBlockDev]}\n" "'$device'"
-    err=$(($err+256))
+    return 10
   else
     fs=$(lsblk -lno fstype $device)
     if [[ ! "$fs" =~ ^(ntfs|vfat)$ ]];then
       echo "${OUT[noFS]}"
-      err+=$(($err+8))
+      return 4
     elif [ "$fs" = "ntfs" ];then
       seek=72;length=8
       if [[ ! "${sn^^}" =~ ^(|[A-F0-9]{16})$ ]];then
         printf "${OUT[wrongSN]}.\n" "'$sn'" "NTFS" 16
-        err=$(($err+8))
+        return 6
       fi
     else
       seek=67;length=4
       if [[ ! "${sn^^}" =~ ^(|[A-F0-9]{4}-?[A-F0-9]{4})$ ]];then
         printf "${OUT[wrongSN]}.\n" "'$sn'" "FAT" 8
-        err=$(($err+8))
+        return 6
       fi
     fi
     if [ ! -z "$(lsblk -lno mountpoints $device)" ]; then
       printf "${OUT[mounted]}\n" $device
-      err+=$(($err+64))
+      return 8
     fi
 
     prevSN=$(lsblk -lno uuid $device)
     if [ "$sn" = "$prevSN" ];then
       echo "${OUT[equalSN]}"
-      err=$(($err+512))
+      return 11
     fi
   fi
 
   if [[ -z "$random" && -z "$sn" ]];then
     echo "${OUT[noSN]}"
-    err=$(($err+16))
+    return 5
   elif [[ ! -z "$random" && ! -z "$sn" ]];then
-    echo "${OUT[SnOverDef]}"
-    err=$(($err+4))
+    echo "${OUT[multiSN]}"
+    return 3
   elif [ "$random" = "true" ];then
     sn=$(xxd -l$length -u -p /dev/urandom)
     if [ "$fs" == "vfat" ];then sn=$(sed -E 's/^(....)/\1-/'<<<$sn);fi
   fi
-
   if [ "$err" != 0 ];then return $err;fi
 }
-
 
 getTranslation(){
   if [ ! -z "$LANGUAGE" ];then local lang=${LANGUAGE:0:3};else local lang=${LANG:0:2};fi
@@ -106,7 +109,7 @@ Optionen:
       OUT[noDev]='Es wurde kein Gerät angegeben.'
       OUT[noBlockDev]='%s ist kein Blockgerät.'
       OUT[noSN]="Sie müssen entweder eine Seriennummer über den Parameter '--serial' definieren, oder den Parameter '--random' angeben."
-      OUT[SnOverDef]="'--random' kann nicht mit '-serial' kombiniert werden."
+      OUT[multiSN]="'--random' kann nicht mit '-serial' kombiniert werden."
       OUT[noFS]="Das Gerät enthält kein gültiges Dateisystem. Nur NTFS und FAT werden unterstützt."
       OUT[wrongSN]='Die angegebene Seriennummer %s hat nicht das richtige Format. Für das %s-Dateisystem muss die Seriennummer aus %d Hexadezimalzeichen bestehen'
       OUT[noSudo]='Dieses Skript muss mit Root-Rechten gestartet werden.'
@@ -115,6 +118,7 @@ Optionen:
       OUT[undev]='Ein undefinierter Fehler ist aufgetreten.'
       OUT[equalSN]='Das Gerät hat bereits die Seriennummer %s. Nichts zu tun.'
       OUT[multiDev]='Es wurden mehrere Geräte angegeben.'
+      OUT[noXxd]='xxd ist nicht installiert.'
       ;;
 
 # ENGLISH
@@ -135,7 +139,7 @@ Options:
       OUT[noDev]='No device specified.'
       OUT[noBlockDev]='%s is not a block device.'
       OUT[noSN]="You must either define a serial number with the parameter '--serial' or specify the parameter '--random'."
-      OUT[SnOverDef]="'--random' can't be combined with '--serial'."
+      OUT[multiSN]="'--random' can't be combined with '--serial'."
       OUT[noFS]='The device does not conatain a valid filesystem. Just NTFS and FAT are supported.'
       OUT[wrongSN]='The specified serial number %s is not valid. For the %s file system, the serial number must consist of %d hexadecimal numbers.'
       OUT[noSudo]='This script must be run as root.'
@@ -144,6 +148,7 @@ Options:
       OUT[undev]='An undefined error has occurred.'
       OUT[equalSN]='The device already has the serial number %s. Nothing to do.'
       OUT[multiDev]='Multiple devices specified.'
+      OUT[noXxd]='xxd is not installed.'
       ;;
   esac
 }
@@ -151,6 +156,7 @@ declare -A OUT
 getTranslation
 getParams $*
 checkValues
+
 tr -d - <<<$sn|rev|fold -w2|rev|xxd -r -p|2>/dev/null dd of=$device bs=1 seek=$seek count=$length
 if [ "$?" = 0 ];then
   printf "${OUT[changed]}\n" $prevSN $sn
@@ -159,14 +165,16 @@ else
 fi
 
 # ERRORCODES
-#    1: undefined error
-#    2: No Device specified
-#    4: Multiple Serials specified
-#    8: Wrong Filesystem
-#   16: No Serialnumber specifies
-#   32: No sudo privilegs
-#   64: Device is mounted
-#  128: Unknown Parameter
-#  256: Not a Blockdevice
-#  512: Serial numbers are equal
-# 1028: Mutiple Devices specified
+#  1: undefined error
+#  2: No Device specified
+#  3: Multiple Serials specified
+#  4: Wrong Filesystem
+#  5: No Serialnumber specifies
+#  6: Wrong serial number format
+#  7: No sudo privilegs
+#  8: Device is mounted
+#  9: Unknown Parameter
+# 10: Not a Blockdevice
+# 11: Serial numbers are equal
+# 12: Mutiple Devices specified
+# 13: xxd not installed
