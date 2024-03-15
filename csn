@@ -22,7 +22,7 @@ getParams(){
     case "$a" in
       -h|--help)    echo "${OUT[help]}"; exit;;
       -r|--random)  random=true;;
-      -s|--serial)  sn=$1;shift;;
+      -s|--serial)  sn=${1^^};shift;;
       *)            printf "${OUT[wrongParam]}\n" "'$a'";err+=;;
     esac
   done
@@ -57,9 +57,11 @@ checkValues(){
       fi
     else
       seek=67;length=4
-      if [[ ! "${sn^^}" =~ ^(|[A-F0-9]{4}-?[A-F0-9]{4})$ ]];then
+      if [[ ! "$sn" =~ ^(|[A-F0-9]{4}-?[A-F0-9]{4})$ ]];then
         printf "${OUT[wrongSN]}.\n" "'$sn'" "FAT" 8
         return 6
+      elif [ ${#sn} = 8 ];then
+        sn=$(sed -E 's/^(....)/\1-/'<<<$sn)
       fi
     fi
     if [ ! -z "$(lsblk -lno mountpoints $device)" ]; then
@@ -69,7 +71,7 @@ checkValues(){
 
     prevSN=$(lsblk -lno uuid $device)
     if [ "$sn" = "$prevSN" ];then
-      echo "${OUT[equalSN]}"
+      printf "${OUT[equalSN]}\n" $sn
       return 11
     fi
   fi
