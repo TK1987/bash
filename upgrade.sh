@@ -31,7 +31,7 @@
       fi
     fi
 		echo -e "\e[1;33mEntferne nicht mehr benötigte Pakete... \e[0;0m"
-		apt -y autoremove
+		apt-get -y autoremove
 		if [ -f /var/run/reboot-required ]; then
 			echo -e "\e[93mBitte starten sie den Computer neu.\e[0;0m"
 		else
