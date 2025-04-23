@@ -1,4 +1,4 @@
-#!/usr/bin/sudo /bin/bash
+#!/bin/bash
 
 ### HAUPTPROGRAMM ###
 	main() {
