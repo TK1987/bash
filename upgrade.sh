@@ -54,7 +54,7 @@
 
 ### RUN ###
   if [ "$EUID" != "0" ];then
-    printf '\e[93m%s\e[0m\n' "WARNING: This Script must be run as root."
+    printf '\e[93m%s\e[0m\n' "WARNUNG: Dieses Skript muss als Root gestartet werden."
     exit
   fi
   main
